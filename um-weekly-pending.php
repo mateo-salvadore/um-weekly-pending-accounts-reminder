@@ -730,7 +730,7 @@ function um_weekly_pending_admin_page() {
                             echo 'N/A (UM not active)';
                         }
                         ?>
-                        <br><small><a href="<?php echo admin_url('admin.php?page=um_options&tab=email&email=weekly_pending_notification'); ?>" target="_blank">Configure in UM Email Settings →</a></small>
+                        <br><small><a href="<?php echo admin_url('admin.php?page=um_options&tab=email&email=weekly_pending_notification'); ?>" >Configure in UM Email Settings →</a></small>
                     </td>
                 </tr>
             </table>
@@ -841,6 +841,13 @@ function um_weekly_pending_admin_page() {
             }
             ?>
         </div>
+		
+		   <div class="card">
+            <h2>Plugin Author</h2>
+          <p><a href="https://mateusz.dudkiewicz.eu" target="_blank">Mateusz Dudkiewicz</a> - version: 1.1</p>
+        </div>
+		
+		
     </div>
     <?php
 }
