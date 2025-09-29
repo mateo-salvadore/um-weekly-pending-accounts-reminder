@@ -33,13 +33,14 @@ Available Email Placeholders:
 This plugin is licensed under the BSD2.
 
 ## Change Log:
-Version 1.1:
+#Version 1.1:
 * Improved Logging
 * Added testing buttons
 * Fixed template recipients usage (instead of site admins)
 * Minor improvements
 
-Vesrion 1.0
+
+#Vesrion 1.0
 * Necessity pushed me to create this plugin
 
 ---
