@@ -18,11 +18,11 @@ In Settings "UM Weekly Pending" option will appear for settings, logging and tro
 Once configured - it will send a weekly email to the Weekly Pending Users Notification template recipients with a list of all pending user accounts.
 
 Available Email Placeholders:
-• {site_name} - Your website name
-• {pending_count} - Number of pending users
-• {pending_users_list} - List of pending users with details
-• {admin_url} - Direct link to review pending users
-• {logo} - Site logo URL
+* {site_name} - Your website name
+* {pending_count} - Number of pending users
+* {pending_users_list} - List of pending users with details
+* {admin_url} - Direct link to review pending users
+* {logo} - Site logo URL
 
 
 ## Requirements
@@ -33,14 +33,14 @@ Available Email Placeholders:
 This plugin is licensed under the BSD2.
 
 ## Change Log:
-#Version 1.1:
+###Version 1.1:
 * Improved Logging
 * Added testing buttons
 * Fixed template recipients usage (instead of site admins)
 * Minor improvements
 
 
-#Vesrion 1.0
+###Version 1.0
 * Necessity pushed me to create this plugin
 
 ---
