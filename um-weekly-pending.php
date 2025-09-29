@@ -3,7 +3,7 @@
 Plugin Name: UM pending accounts reminder
 Description: Weekly notification about pending user accounts in Ultimate Member.
 Author: Mateusz Dudkiewicz
-Version: 1.0
+Version: 1.1
 */
 
 // Prevent direct access
@@ -165,9 +165,9 @@ Best regards,<br>
     return $emails;
 }
 
-// Perform pending account notification
+// Perform pending account notification (WEEKLY CRON - uses template recipients)
 function um_pending_notify_do() {
-    um_weekly_log('Starting pending accounts check...');
+    um_weekly_log('Starting weekly pending accounts check...');
     
     // Check if Ultimate Member is active
     if (!class_exists('UM') || !function_exists('UM')) {
@@ -210,7 +210,70 @@ function um_pending_notify_do() {
         );
     }
 
-    // Get administrators
+    // Check if UM email template is enabled
+    $email_on = UM()->options()->get('weekly_pending_notification_on');
+    
+    if ($email_on) {
+        um_weekly_send_via_template($pending_count, $pending_users_list);
+    } else {
+        um_weekly_log('UM email template is disabled, using fallback email method');
+        
+        // Use fallback email if UM email template is disabled
+        $admins = get_users(array('role' => 'administrator'));
+        foreach ($admins as $admin) {
+            um_weekly_send_fallback_email($admin, $pending_count, $pending_users_list);
+        }
+        um_weekly_log('Fallback emails sent to ' . count($admins) . ' admin(s)');
+    }
+
+    um_weekly_log($pending_count . ' pending accounts found. Weekly notification processing completed.');
+}
+
+// Send test notification to administrators (TEST BUTTON - always uses admins)
+function um_weekly_send_test_to_admins() {
+    um_weekly_log('Starting TEST notification to administrators...');
+    
+    // Check if Ultimate Member is active
+    if (!class_exists('UM') || !function_exists('UM')) {
+        um_weekly_log('Ultimate Member plugin not found or not active');
+        return false;
+    }
+
+    // Get all users with pending status
+    $pending_users = get_users(array(
+        'meta_query' => array(
+            'relation' => 'OR',
+            array(
+                'key' => 'account_status',
+                'value' => array('pending', 'awaiting_admin_review', 'awaiting_admin_approval'),
+                'compare' => 'IN'
+            ),
+            array(
+                'key' => 'um_account_status',
+                'value' => array('pending', 'awaiting_admin_review', 'awaiting_admin_approval'),
+                'compare' => 'IN'
+            )
+        )
+    ));
+
+    $pending_count = count($pending_users);
+    
+    // Build pending users list for email template
+    $pending_users_list = '';
+    if ($pending_count > 0) {
+        foreach ($pending_users as $user) {
+            $user_info = get_userdata($user->ID);
+            $pending_users_list .= sprintf("• %s (%s) - Registered: %s<br>", 
+                esc_html($user_info->display_name), 
+                esc_html($user_info->user_email), 
+                date('Y-m-d', strtotime($user_info->user_registered))
+            );
+        }
+    } else {
+        $pending_users_list = "No pending users at the moment.<br>";
+    }
+
+    // Get administrators and send test email
     $admins = get_users(array('role' => 'administrator'));
     
     // Check if UM email template is enabled
@@ -230,15 +293,13 @@ function um_pending_notify_do() {
             'site_name' => get_bloginfo('name')
         );
         
-        // Send using UM's email system
+        // Send using UM's email system to each admin
         foreach ($admins as $admin) {
             try {
-                // Send the email using UM's mail system
                 UM()->mail()->send($admin->user_email, 'weekly_pending_notification');
-                
-                um_weekly_log('UM email sent to admin: ' . $admin->user_email);
+                um_weekly_log('TEST UM email sent to admin: ' . $admin->user_email);
             } catch (Exception $e) {
-                um_weekly_log('UM email failed for ' . $admin->user_email . ': ' . $e->getMessage());
+                um_weekly_log('TEST UM email failed for ' . $admin->user_email . ': ' . $e->getMessage());
                 
                 // Fallback to wp_mail
                 um_weekly_send_fallback_email($admin, $pending_count, $pending_users_list);
@@ -256,7 +317,167 @@ function um_pending_notify_do() {
         }
     }
 
-    um_weekly_log($pending_count . ' pending accounts found. Notifications sent to ' . count($admins) . ' admin(s).');
+    um_weekly_log('TEST notification sent to ' . count($admins) . ' administrator(s).');
+    return true;
+}
+
+// Send test notification to template recipients (TEST BUTTON - uses template recipients)
+function um_weekly_send_test_to_template_recipients() {
+    um_weekly_log('Starting TEST notification to template recipients...');
+    
+    // Check if Ultimate Member is active
+    if (!class_exists('UM') || !function_exists('UM')) {
+        um_weekly_log('Ultimate Member plugin not found or not active');
+        return false;
+    }
+
+    // Get all users with pending status
+    $pending_users = get_users(array(
+        'meta_query' => array(
+            'relation' => 'OR',
+            array(
+                'key' => 'account_status',
+                'value' => array('pending', 'awaiting_admin_review', 'awaiting_admin_approval'),
+                'compare' => 'IN'
+            ),
+            array(
+                'key' => 'um_account_status',
+                'value' => array('pending', 'awaiting_admin_review', 'awaiting_admin_approval'),
+                'compare' => 'IN'
+            )
+        )
+    ));
+
+    $pending_count = count($pending_users);
+    
+    // Build pending users list for email template
+    $pending_users_list = '';
+    if ($pending_count > 0) {
+        foreach ($pending_users as $user) {
+            $user_info = get_userdata($user->ID);
+            $pending_users_list .= sprintf("• %s (%s) - Registered: %s<br>", 
+                esc_html($user_info->display_name), 
+                esc_html($user_info->user_email), 
+                date('Y-m-d', strtotime($user_info->user_registered))
+            );
+        }
+    } else {
+        $pending_users_list = "No pending users at the moment.<br>";
+    }
+
+    // Check if UM email template is enabled
+    $email_on = UM()->options()->get('weekly_pending_notification_on');
+    
+    if ($email_on) {
+        um_weekly_send_via_template($pending_count, $pending_users_list, true);
+    } else {
+        um_weekly_log('UM email template is disabled, cannot send to template recipients');
+        return false;
+    }
+
+    um_weekly_log('TEST notification sent to template recipients.');
+    return true;
+}
+
+// Helper function to send via UM template (uses template recipients)
+function um_weekly_send_via_template($pending_count, $pending_users_list, $is_test = false) {
+    $log_prefix = $is_test ? 'TEST ' : '';
+    
+    um_weekly_log($log_prefix . 'Preparing to send via UM template...');
+    
+    // Check UM mail object
+    if (!method_exists(UM()->mail(), 'send')) {
+        um_weekly_log($log_prefix . 'ERROR: UM mail send method not available');
+        return false;
+    }
+    
+    // Get UM admin email (the one set in UM settings)
+    $um_admin_email = UM()->options()->get('admin_email');
+    um_weekly_log($log_prefix . 'UM admin email setting: ' . var_export($um_admin_email, true));
+    
+    // Get mail notifications admin email
+    $mail_admin_email = UM()->options()->get('mail_from');
+    um_weekly_log($log_prefix . 'UM mail from setting: ' . var_export($mail_admin_email, true));
+    
+    // Check recipients configuration for this specific template
+    $recipients = UM()->options()->get('weekly_pending_notification_recipients');
+    um_weekly_log($log_prefix . 'Template recipients setting: ' . var_export($recipients, true));
+    
+    // Determine who to send to
+    $send_to = '';
+    if (!empty($recipients)) {
+        $send_to = $recipients;
+        um_weekly_log($log_prefix . 'Using template-specific recipients');
+    } elseif (!empty($um_admin_email)) {
+        $send_to = $um_admin_email;
+        um_weekly_log($log_prefix . 'Using UM admin email as recipient');
+    } else {
+        // Fallback to WordPress admin email
+        $send_to = get_option('admin_email');
+        um_weekly_log($log_prefix . 'Using WordPress admin email as fallback: ' . $send_to);
+    }
+    
+    um_weekly_log($log_prefix . 'Final recipient(s): ' . var_export($send_to, true));
+    
+    // Add filters for custom placeholders before sending emails
+    add_filter('um_template_tags_patterns_hook', 'um_weekly_add_placeholders');
+    add_filter('um_template_tags_replaces_hook', 'um_weekly_replace_placeholders');
+    
+    // Store data globally for the filters
+    global $um_weekly_email_data;
+    $um_weekly_email_data = array(
+        'pending_count' => $pending_count,
+        'pending_users_list' => $pending_users_list,
+        'admin_url' => admin_url('users.php?um_user_status=awaiting_admin_review'),
+        'site_name' => get_bloginfo('name')
+    );
+    
+    um_weekly_log($log_prefix . 'Calling UM()->mail()->send() with recipient: ' . $send_to);
+    
+    try {
+        // Add email logging filter
+        add_action('wp_mail', 'um_weekly_log_wp_mail', 10, 1);
+        add_filter('wp_mail_failed', 'um_weekly_log_wp_mail_error', 10, 1);
+        
+        // Send using UM's email system with the determined recipient
+        $result = UM()->mail()->send($send_to, 'weekly_pending_notification');
+        
+        um_weekly_log($log_prefix . 'UM mail send returned: ' . var_export($result, true));
+        
+        // Remove logging filters
+        remove_action('wp_mail', 'um_weekly_log_wp_mail');
+        remove_filter('wp_mail_failed', 'um_weekly_log_wp_mail_error');
+        
+    } catch (Exception $e) {
+        um_weekly_log($log_prefix . 'EXCEPTION in UM email: ' . $e->getMessage());
+        um_weekly_log($log_prefix . 'Exception trace: ' . $e->getTraceAsString());
+        
+        if (!$is_test) {
+            // For weekly cron, fallback to admins
+            $admins = get_users(array('role' => 'administrator'));
+            foreach ($admins as $admin) {
+                um_weekly_send_fallback_email($admin, $pending_count, $pending_users_list);
+            }
+            um_weekly_log('Used fallback email method for ' . count($admins) . ' admin(s)');
+        }
+    }
+    
+    // Remove filters after sending
+    remove_filter('um_template_tags_patterns_hook', 'um_weekly_add_placeholders');
+    remove_filter('um_template_tags_replaces_hook', 'um_weekly_replace_placeholders');
+}
+
+// Log wp_mail calls
+function um_weekly_log_wp_mail($args) {
+    um_weekly_log('wp_mail called with recipient: ' . (is_array($args['to']) ? implode(', ', $args['to']) : $args['to']));
+    um_weekly_log('Subject: ' . $args['subject']);
+    return $args;
+}
+
+// Log wp_mail errors
+function um_weekly_log_wp_mail_error($wp_error) {
+    um_weekly_log('wp_mail ERROR: ' . $wp_error->get_error_message());
+    return $wp_error;
 }
 
 // Add custom placeholders to UM's template system
@@ -342,9 +563,26 @@ function um_weekly_pending_admin_page() {
         }
     }
     
-    if (isset($_POST['test_notification']) && current_user_can('manage_options')) {
+    if (isset($_POST['test_notification_admins']) && current_user_can('manage_options')) {
+        if (um_weekly_send_test_to_admins()) {
+            echo '<div class="updated notice"><p>Test notification sent to all administrators! Check the log below.</p></div>';
+        } else {
+            echo '<div class="error notice"><p>Failed to send test notification. Check the log below for details.</p></div>';
+        }
+    }
+    
+    if (isset($_POST['test_notification_template']) && current_user_can('manage_options')) {
+        if (um_weekly_send_test_to_template_recipients()) {
+            echo '<div class="updated notice"><p>Test notification sent to template recipients! Check the log below.</p></div>';
+        } else {
+            echo '<div class="error notice"><p>Failed to send test notification. Make sure the UM email template is enabled and configured.</p></div>';
+        }
+    }
+    
+    if (isset($_POST['run_cron_now']) && current_user_can('manage_options')) {
+        um_weekly_log('=== MANUAL CRON TRIGGER ===');
         um_pending_notify_do();
-        echo '<div class="updated notice"><p>Test notification sent! Check the log below.</p></div>';
+        echo '<div class="updated notice"><p>Weekly cron job executed manually! Check the log below to see results.</p></div>';
     }
     
     if (isset($_POST['reschedule_cron']) && current_user_can('manage_options')) {
@@ -370,7 +608,13 @@ function um_weekly_pending_admin_page() {
         }
         
         // Calculate next occurrence
-        $next_occurrence = strtotime("next {$cron_day} {$cron_time}");
+        // First, try "this [day] [time]" which works if it's in the future today
+        $next_occurrence = strtotime("this {$cron_day} {$cron_time}");
+        
+        // If that's in the past, use "next [day] [time]"
+        if ($next_occurrence <= current_time('timestamp')) {
+            $next_occurrence = strtotime("next {$cron_day} {$cron_time}");
+        }
         
         // Reschedule with new settings
         wp_schedule_event($next_occurrence, 'weekly', 'um_pending_notify_cron');
@@ -379,7 +623,9 @@ function um_weekly_pending_admin_page() {
         update_option('um_weekly_pending_cron_day', $cron_day);
         update_option('um_weekly_pending_cron_time', $cron_time);
         
-        echo '<div class="updated notice"><p>Cron job rescheduled for ' . $cron_day . ' at ' . $cron_time . '.</p></div>';
+        um_weekly_log('Cron rescheduled for ' . date('Y-m-d H:i:s', $next_occurrence) . ' (' . $cron_day . ' at ' . $cron_time . ')');
+        
+        echo '<div class="updated notice"><p>Cron job rescheduled for ' . $cron_day . ' at ' . $cron_time . ' (next run: ' . date('Y-m-d H:i:s', $next_occurrence) . ').</p></div>';
     }
     
     if (isset($_POST['reset_email_template']) && current_user_can('manage_options')) {
@@ -456,28 +702,32 @@ function um_weekly_pending_admin_page() {
                     <th>Email Template Status:</th>
                     <td>
                         <?php 
-                        $email_on = UM()->options()->get('weekly_pending_notification_on');
-                        $subject = UM()->options()->get('weekly_pending_notification_sub');
-                        
-                        // Check if template file exists
-                        $theme_dir = get_stylesheet_directory();
-                        $template_file = $theme_dir . '/ultimate-member/email/weekly_pending_notification.php';
-                        $template_exists = file_exists($template_file);
-                        
-                        if ($email_on) {
-                            echo '<span style="color: green;">✓ Enabled</span>';
+                        if (class_exists('UM')) {
+                            $email_on = UM()->options()->get('weekly_pending_notification_on');
+                            $subject = UM()->options()->get('weekly_pending_notification_sub');
+                            
+                            // Check if template file exists
+                            $theme_dir = get_stylesheet_directory();
+                            $template_file = $theme_dir . '/ultimate-member/email/weekly_pending_notification.php';
+                            $template_exists = file_exists($template_file);
+                            
+                            if ($email_on) {
+                                echo '<span style="color: green;">✓ Enabled</span>';
+                            } else {
+                                echo '<span style="color: orange;">⚠ Disabled</span>';
+                            }
+                            
+                            if (empty($subject)) {
+                                echo ' <span style="color: red;">(Subject missing)</span>';
+                            }
+                            
+                            if (!$template_exists) {
+                                echo ' <span style="color: red;">(Template file missing)</span>';
+                            } else {
+                                echo ' <span style="color: green;">(Template file exists)</span>';
+                            }
                         } else {
-                            echo '<span style="color: orange;">⚠ Disabled</span>';
-                        }
-                        
-                        if (empty($subject)) {
-                            echo ' <span style="color: red;">(Subject missing)</span>';
-                        }
-                        
-                        if (!$template_exists) {
-                            echo ' <span style="color: red;">(Template file missing)</span>';
-                        } else {
-                            echo ' <span style="color: green;">(Template file exists)</span>';
+                            echo 'N/A (UM not active)';
                         }
                         ?>
                         <br><small><a href="<?php echo admin_url('admin.php?page=um_options&tab=email&email=weekly_pending_notification'); ?>" target="_blank">Configure in UM Email Settings →</a></small>
@@ -533,14 +783,36 @@ function um_weekly_pending_admin_page() {
 
         <div class="card">
             <h2>Actions</h2>
+            <p><strong>Note:</strong> Weekly cron notifications are sent to recipients configured in the UM email template settings.</p>
+            
             <form method="post" style="display: inline;">
-                <input type="hidden" name="test_notification" value="1">
-                <input type="submit" class="button button-primary" value="Send Test Notification" title="This will send test emails to all administrators on the site, not to recipients configured in UM email template settings.">
+                <input type="hidden" name="test_notification_admins" value="1">
+                <input type="submit" class="button button-primary" value="Send Test Email to Admins">
+                <p class="description" style="display: inline; margin-left: 10px;">Sends test email to all site administrators</p>
             </form>
             
-            <form method="post" style="display: inline; margin-left: 10px;">
+            <br><br>
+            
+            <form method="post" style="display: inline;">
+                <input type="hidden" name="test_notification_template" value="1">
+                <input type="submit" class="button button-primary" value="Send Test Email to Template Recipients">
+                <p class="description" style="display: inline; margin-left: 10px;">Sends test email to recipients configured in UM template</p>
+            </form>
+            
+            <br><br>
+            
+            <form method="post" style="display: inline;">
+                <input type="hidden" name="run_cron_now" value="1">
+                <input type="submit" class="button button-primary" value="Run Weekly Cron Now" onclick="return confirm('This will execute the weekly cron job immediately. Continue?');">
+                <p class="description" style="display: inline; margin-left: 10px;">Manually trigger the weekly notification (uses template recipients, only sends if there are pending users)</p>
+            </form>
+            
+            <br><br>
+            
+            <form method="post" style="display: inline;">
                 <input type="hidden" name="reset_email_template" value="1">
-                <input type="submit" class="button button-primary" value="Reset Email Template" title="This will reset the email template file and subject to default content. Any customizations will be lost." onclick="return confirm('This will reset the email template to default content. Continue?');">
+                <input type="submit" class="button button-secondary" value="Reset Email Template" onclick="return confirm('This will reset the email template to default content. Continue?');">
+                <p class="description" style="display: inline; margin-left: 10px;">Reset template file and subject to defaults</p>
             </form>
         </div>
 
