@@ -12,10 +12,18 @@ This plugin for WordPress and Ultimate Member helps administrators stay on top o
 3. Activate the plugin through the WordPress admin dashboard.
 
 ## Usage
-Once activated, the plugin will send a weekly email to the site administrator with a list of all pending user accounts. The email content can be customized by editing the plugin's code.
+Once activated, the plugin will create an email template in UM Email settings: Weekly Pending Users Notification - it's fully customizable in settings panel. 
+It also created weekly cron job, default is Monday 10:00 (Local Time).
+In Settings "UM Weekly Pending" option will appear for settings, logging and troubleshooting. You may change Cron Job schedule there.
+Once configured - it will send a weekly email to the Weekly Pending Users Notification template recipients with a list of all pending user accounts.
 
-## Customization
-To modify the email template, edit the `um-weekly-pending.php` file in the plugin directory. Adjust the HTML and PHP code as needed to change the layout, content, or styling of the email.
+Available Email Placeholders:
+• {site_name} - Your website name
+• {pending_count} - Number of pending users
+• {pending_users_list} - List of pending users with details
+• {admin_url} - Direct link to review pending users
+• {logo} - Site logo URL
+
 
 ## Requirements
 * WordPress version 5.0 or higher
