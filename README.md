@@ -24,6 +24,16 @@ To modify the email template, edit the `um-weekly-pending.php` file in the plugi
 ## License
 This plugin is licensed under the BSD2.
 
+## Change Log:
+Version 1.1:
+* Improved Logging
+* Added testing buttons
+* Fixed template recipients usage (instead of site admins)
+* Minor improvements
+
+Vesrion 1.0
+* Necessity pushed me to create this plugin
+
 ---
 
 This plugin is ideal for administrators who want to ensure timely review and approval of user registrations. By receiving weekly reminders, you can maintain an organized and efficient user management process.
