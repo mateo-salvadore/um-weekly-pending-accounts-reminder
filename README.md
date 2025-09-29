@@ -7,9 +7,9 @@ This plugin for WordPress and Ultimate Member helps administrators stay on top o
 * **Seamless Integration**: Works with the Ultimate Member plugin to track and manage user registrations.
 
 ## Installation
-1. Download the plugin files.
-2. Upload them to your WordPress plugins directory.
-3. Activate the plugin through the WordPress admin dashboard.
+1. Click Green Code button, and download as ZIP.
+2. In your Wordpress Admin panel add new plugin and upload this zip. Activate it.
+3. Use plugin and enjoy!
 
 ## Usage
 Once activated, the plugin will create an email template in UM Email settings: Weekly Pending Users Notification - it's fully customizable in settings panel. 
