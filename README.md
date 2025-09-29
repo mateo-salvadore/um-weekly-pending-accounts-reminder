@@ -45,4 +45,5 @@ This plugin is licensed under the BSD2.
 
 ---
 
-This plugin is ideal for administrators who want to ensure timely review and approval of user registrations. By receiving weekly reminders, you can maintain an organized and efficient user management process.
+This plugin is ideal for administrators who want to ensure timely review and approval of user registrations. By receiving weekly reminders, you can maintain an organized and efficient user management process. 
+Created by: Mateusz Dudkiewicz
