@@ -36,7 +36,7 @@ This plugin is licensed under the BSD2.
 ### Version 1.1:
 * Improved Logging
 * Added testing buttons
-* Fixed template recipients usage (instead of site admins)
+* Fixed using of template recipients (instead of site admins)
 * Minor improvements
 
 
